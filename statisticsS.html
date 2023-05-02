@@ -1,0 +1,685 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+  <link rel="apple-touch-icon" href="img/statistics.PNG" />
+  <script type="text/javascript" src="taq.js"></script>
+  <script type="text/javascript" src="order.js"></script>
+  <link rel="stylesheet" href="taq.css" type="text/css">
+  <link rel="stylesheet" href="order.css" type="text/css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Statistics App</title></head><body>
+<span id="Realtime" class="time">00/00(0) 00:00:00</span>
+<button class="reload" onclick="reload()">リロード</button><br><br>
+<div class="id_table" id="id_table"></div>
+<span class="zzz">
+  <span>表示中の番号 : </span>
+  <input type="checkbox" name="show" value="yet" id="show_yet" onchange="show_event()" checked><label for="show_yet">お渡し未了分</label>
+  <input type="checkbox" name="show" value="already" id="show_already" onchange="show_event()"><label for="show_already">お渡し済当日分</label>
+  <input type="checkbox" name="show" value="past" id="show_past" onchange="show_event()"><label for="show_past">お渡し済昨日以前</label></span>
+<table class="Statistics_table">
+  <thead>
+    <tr><th colspan="4">統計情報</th></tr>
+    <tr><th>プレーン</th><th>ココア</th><th>抹茶</th><th>合計</th></tr>
+  </thead>
+  <tbody>
+    <tr><th>--個</th><th>--個</th><th>--個</th><th>--個</th></tr>
+    <tr>
+      <td>売上</td><td colspan="2">¥****-</td>
+      <td><button class="filter" onclick="openPanel()">表示内容の設定<br>（フィルター）</button></td>
+    </tr>
+  </tbody>
+</table>
+<span id='hid' class="hidden">
+
+  <span class="order">受付番号：<span id="No">001</span><br>
+  <span class="loading">情報取得中...</span></span>
+  <button class="back" onclick="back()">一覧に戻る</button>
+  <br><br><br>
+  <table class="Product"><tr>
+    <td><button class="image loadNeed" onclick="add(0)" timing="yet"><img src="img/menu1.jpg" class="photo">プレーン</button></td>
+    <td><button class="image loadNeed" onclick="add(1)" timing="yet"><img src="img/menu2.jpg" class="photo">ココア</button></td>
+    <td><button class="image loadNeed" onclick="add(2)" timing="yet"><img src="img/menu3.jpg" class="photo">抹茶</button></td>
+    <td><button class="image loadNeed" onclick="onoff1()" timing="yet"><img id="gazo1"  src="img/menu4.jpg" class="photo">粉糖</button></td>
+  </tr><tr>
+    <td><button class="pm loadNeed"onclick="sub(0)" timing="yet">-</button><span class="qt">0</span> <button type="button"class="pm loadNeed"onclick="add(0)" timing="yet">+</button></td>
+    <td><button class="pm loadNeed"onclick="sub(1)" timing="yet">-</button> <span class="qt">0</span> <button type="button"class="pm loadNeed"onclick="add(1)" timing="yet">+</button></td>
+    <td><button class="pm loadNeed"onclick="sub(2)" timing="yet">-</button> <span class="qt">0</span> <button type="button"class="pm loadNeed"onclick="add(2)" timing="yet">+</button></td>
+    <td><button class="tp loadNeed"onclick="onoff1()" timing="yet">なし/あり</button></td>
+  </tr></table><br>
+  <span class="sum">計 <span id="sum1">-</span> 個 <span id="sum2">---</span> 円</span><br>
+  <button type="reset" class="reset loadNeed" onclick="resetNo()" timing="yet">オーダー削除</button>
+  <button type="submit" class="submit loadNeed" onclick="orderNo()" timing="yet">変更反映</button>
+  <button class="cmp loadNeed" onclick="fin()" timing="yet">お渡し完了</button>
+  <button class="notcmp loadNeed" onclick="reject()" timing="already">完了取消し</button></span>
+<div id="statConfig" style="display:none;position:fixed;z-index:50;background:#8888CC;border-radius:30px;bottom:0px;width:calc(100vw - 5px);padding-bottom: env(safe-area-inset-bottom);text-align:center">
+  <div style="margin:20px 10px;">
+    <h1>統計情報設定</h1>
+    <p>統計情報に表示する情報を設定できます。</p>
+    <p>
+      <ul id="statDateList" style="width:auto;text-align:left;display:inline-block;list-style:none;">
+      </ul>
+    </p>
+    <button onclick="closePanel();">閉じる</button>
+  </div>
+</div>
+<div class="bg" id="loadicon">
+  <div class="loading2">
+    <p>データベース接続中...</p>
+    <div class="way"><div class="round">●</div></div>
+    <button onclick="location.reload();">再読み込み</button>
+  </div>
+</div>
+<script>
+  //以下ソケット系の関数
+  socket = io.connect('https://socket.taq-system.tk',{query:{"type":"編集"}});
+  var now_date;
+  var List = {};
+  function reload(){
+    location.reload();
+  }
+  var a_order = {};
+  var default_list = {
+    id:"---",
+    item1:"-",
+    item2:"-",
+    item3:"-",
+    sugar:1,
+    deliver:0,
+  };
+  List = JSON.parse(JSON.stringify(default_list));
+  function editHTML(){
+    console.log(List);
+    var amount = document.getElementsByClassName("qt");
+    var but = document.getElementsByClassName("loadNeed");
+    var loading = document.getElementsByClassName("loading")[0];
+    var No = document.getElementById("No");
+    var sum1 = document.getElementById("sum1");
+    var sum2 = document.getElementById("sum2");
+    amount[0].innerHTML = List.item1;
+    amount[1].innerHTML = List.item2;
+    amount[2].innerHTML = List.item3;
+    cnt1  = (List.sugar -4 ) * (-1);
+    onoff1();
+    sum1.innerHTML =List.item1+List.item2+List.item3;
+    No.innerHTML = set3fig(List.id);
+    if(!List.time){
+      console.log("if文");
+      sum1.innerHTML ="-";
+      sum2.innerHTML ="---";
+      loading.innerHTML = "情報取得中...";
+      for(var i=0;i<but.length;i++){
+        but[i].disabled=true;
+
+
+      }
+    }
+    else{
+      console.log("else文");
+      sum1.innerHTML =List.item1+List.item2+List.item3;
+      sum2.innerHTML =parseInt(sum1.innerHTML)*50;
+      var d = new Date(List.time);
+      List.time += 1000*60*60*9;
+      var timeStr = d.getHours() +":"+set2fig(d.getMinutes())+" ";
+      loading.innerHTML = timeStr + "に注文されました。";
+      for(var i=0;i<but.length;i++){
+        if(List.deliver){
+          if(but[i].getAttribute("timing")=="already"){
+            but[i].disabled = false;
+          }
+        }
+        else{
+          if(but[i].getAttribute("timing")=="yet"){
+            but[i].disabled = false;
+          }
+        }
+      }
+    }
+
+  }
+
+  function popup(id){
+    List = JSON.parse(JSON.stringify(default_list));
+    editHTML();
+    //内容書き換えをここに記述
+    document.getElementById('hid').style.visibility="visible";
+    socket.emit("get_order",{id:id});
+  }
+
+  socket.on("get_order",(msg)=>{
+    List = JSON.parse(JSON.stringify(msg));
+    editHTML();
+  });
+
+  function back(){
+    showAlert('何も変更されません！','内容を変更せずに戻ってよろしいですか？','confirm','popdown()');
+  }
+
+  function popdown(){
+    document.getElementById('hid').style.visibility="collapse";
+    List = JSON.parse(JSON.stringify(default_list));
+    editHTML();
+
+  }
+
+
+  function addnum(id){
+    var table=document.getElementById("id_table");
+    var span = document.createElement('span');
+    var id_num=set3fig(id);
+    var status;
+    //span.innerHTML='<button type="button" value='+id+' class="id_button" id="No'+id+'"onclick="popup('+id+')" />';
+    span.innerHTML='<button class="id_button" id="No'+id+'"onclick="popup('+id+')">'+id+'</button>';
+    //buttonにすると絞り込みがちゃんとされずに全部表示される
+    table.appendChild(span);
+  }
+
+  setInterval('showClock()',1000);
+
+  function updateList(){
+    var amount = document.getElementsByClassName("qt");
+    var List2 ={};
+    List2.item1 = amount[0].innerHTML;
+    List2.item2 = amount[1].innerHTML;
+    List2.item3 = amount[2].innerHTML;
+    List2.sugar = (cnt1 - 4) * -1;
+
+    return List2;
+  }
+
+  function orderNo(){
+    var No=document.getElementById('No');
+    var x=parseInt(sum1.innerHTML);
+    showAlert('変更内容確認','計'+x+'個'+x*50+'円です。'+'この変更を確定してよろしいですか？',"confirm",'orderNo2()');
+
+  }
+  function orderNo2(){
+    var No=document.getElementById('No');
+    var x=parseInt(sum1.innerHTML);
+    socket.emit("edit",{id:List.id,detail:updateList()});
+
+    showAlert('変更完了',"注文内容の変更を送信しました。");
+    popdown();
+
+  }
+  function resetNo(){
+    showAlert('削除確認','この注文をキャンセルしてよろしいですか？','confirm',"resetNo2()");
+
+  }
+  function resetNo2(){
+    socket.json.emit("delete",{"id":"No"+List.id});
+    showAlert('削除完了',"注文を取り消しました");
+    popdown();
+  }
+
+  function onoff1(){
+    if (cnt1 == 4){ cnt1=3; }
+    else{ cnt1=4; }
+
+
+
+    document.getElementById("gazo1").src=img[cnt1].src;
+  }
+
+  function sum(){
+    var qt=document.getElementsByClassName('qt');
+    //var ex=3;
+    //var ex=parseInt(qt[1]);
+    //for(var i=0;i<6;i++){ret=ret+qt[i];}
+    var ex=0;
+    for(var i=0;i<6;i++){ex+=qt[i];};
+    return ex;
+  }
+  var show_event = function(){
+    var show = document.getElementsByName("show");
+    var css = document.getElementsByTagName("style")[1];
+    var cssTxt="";
+    for(var item=0;item<3;item++){
+
+      cssTxt += "button[show_status=\""+show[item].value+"\"]{";
+      if(show[item].checked!=true){
+        cssTxt+="display:none;";
+      }
+      cssTxt+="}\n";
+    }
+    css.innerHTML = cssTxt;
+  }
+  //sockets
+  socket.on("disconnect",function(){document.getElementById("loadicon").style.display="block";});
+
+  //接続完了のお知らせ & 受付番号・お渡しの有無を要求
+  socket.on("connect",function(){
+    setTimeout(function(){
+      document.getElementById("loadicon").style.display="none";
+      banner("接続完了","サーバーと接続が完了しました");
+      socket.emit("get_orderIds","");
+      socket.emit("get_sum","");
+    },800);});
+
+    //上の情報が返ってきたときの動作
+    socket.on("get_orderIds",function(msg){
+
+      addJSON(msg);
+    });
+    //その他動作を受信した時の動作
+    socket.on("order",function(msg){
+      var json = {};
+      json.id=msg.id;
+      json.deliver=0;
+      json.time=msg.time;
+      json =[json];
+      addJSON(json);
+      socket.emit("get_sum","");
+
+    });
+    //その他動作を受信した時の動作
+    socket.on("unfin",function(msg){
+      console.log(msg);
+      var json = {};
+      json.id=msg.id;
+      json.deliver=0;
+      json.time=msg.time;
+      json =[json];
+      addJSON(json);
+      socket.emit("get_sum","");
+
+    });
+    socket.on("finish r",function(msg){
+
+
+
+      var json = {};
+      json.id=msg.id.replace(/No/,"");
+      json.deliver=1;
+      json.time=List[json.id].time;
+      json =[json];
+      addJSON(json);
+      socket.emit("get_sum","");
+
+    });
+    socket.on("delete r",function(msg){
+      var json = {};
+      json.id=msg.id.replace(/No/,"");
+      json.deliver=1;
+      json.time=List[json.id].time;
+      json =[json];
+      addJSON(json);
+      socket.emit("get_sum","");
+
+    });
+
+    //各関数
+
+    //JSONの配列を格納する
+    function addJSON(numList){
+
+      for(var i=0;i<numList.length;i++){
+        updateJson(numList[i]);
+      }
+    }
+
+    //JSONを変数に格納後、描写の関数を呼び出す。
+    function updateJson(obj){
+      if(List[obj.id]){
+        List[obj.id].deliver= obj.deliver;
+      }
+      else{
+        List[obj.id]=obj;
+      }
+      addHtmlList(obj.id);
+    }
+    function addHtmlList(id){
+      var item = document.getElementById("No"+id);
+      if(!item){
+        addnum(id);
+        item = document.getElementById("No"+id);
+
+      }
+      let now = new Date();
+      let nowStr = parseInt(now.getMonth() +''+ now.getDate());
+      let time= new Date(List[id].time);
+      let timeStr= parseInt(time.getMonth()+''+time.getDate());
+      if(nowStr!=timeStr){
+        item.setAttribute("show_status","past");
+      }
+      else if(List[id].deliver==0){
+        item.setAttribute("show_status","yet");
+      }
+      else {
+        item.setAttribute("show_status","already");
+      }
+    }
+    //ボタン押下時の機能をつらつらと書く予定
+    function fin(){
+      showAlert('完了確認','この注文の受け渡しを完了してよろしいですか？','confirm','fin2()');
+
+    }
+    function fin2(){
+      socket.emit("finish",{id:"No"+List.id});
+      showAlert('お渡し完了',"注文を完了しました。");
+      popdown();
+    }
+
+    function reject(){
+      showAlert('未了確認','この注文はまだ受け渡しが完了していませんでしたか？','confirm','reject2()');
+    }
+      function reject2(){
+        socket.emit("unfin",{id:"No"+List.id});
+        showAlert('完了の取り消しOK',"注文の受け渡しを、未了に設定しました。");
+        popdown();
+      }
+      var first =true;
+      //ここから下は合計値のSUM計算を行う関数
+      var sumList={};
+      socket.on("get_sum",function(msg){
+        sumList={};
+
+        sumList[now_date] = {
+          _deliver:{
+            yet:{
+              item1:0,
+              item2:0,
+              item3:0,
+              itemSum:0,
+              price:0,
+              customs:0
+
+            },
+            already:{
+              item1:0,
+              item2:0,
+              item3:0,
+              itemSum:0,
+              price:0,
+              customs:0
+
+            }
+          },
+          item1:0,
+          item2:0,
+          item3:0,
+          itemSum:0,
+          price:0,
+          customs:0
+        };
+
+        for(var item in msg){
+          if(!(msg[item].date in sumList)){
+
+            sumList[msg[item].date] = {
+              _deliver:{
+                yet:{
+                  item1:0,
+                  item2:0,
+                  item3:0,
+                  itemSum:0,
+                  price:0,
+                  customs:0
+                },
+                already:{
+                  item1:0,
+                  item2:0,
+                  item3:0,
+                  itemSum:0,
+                  price:0,
+                  customs:0
+                }
+              },
+              item1:0,
+              item2:0,
+              item3:0,
+              itemSum:0,
+              price:0,
+              customs:0
+            };
+          }
+          if(msg[item].deliver==0){
+            msg[item].deliver="yet";
+          }
+          else{
+            msg[item].deliver="already";
+          }
+          sumList[msg[item].date]._deliver[msg[item].deliver]=msg[item];
+          sumList[msg[item].date]._deliver[msg[item].deliver].itemSum = msg[item].item1 + msg[item].item2 + msg[item].item3;
+        }
+        for(var item in sumList){
+
+          sumList[item].item2=sumList[item]._deliver.yet.item2 + sumList[item]._deliver.already.item2;
+          sumList[item].item1=sumList[item]._deliver.yet.item1 + sumList[item]._deliver.already.item1;
+          sumList[item].item3=sumList[item]._deliver.yet.item3 + sumList[item]._deliver.already.item3;
+          sumList[item].itemSum=sumList[item]._deliver.yet.itemSum + sumList[item]._deliver.already.itemSum;
+          sumList[item].price=sumList[item]._deliver.yet.price + sumList[item]._deliver.already.price;
+          sumList[item].customs =sumList[item]._deliver.yet.customs + sumList[item]._deliver.already.customs ;
+
+        }
+
+        if(first){
+          var list = document.getElementById("statDateList");
+          while(list.firstChild)list.removeChild(list.firstChild);
+          for(var date in sumList){
+            if(date!=now_date){
+              let dom = document.createElement("li");
+              dom.innerHTML='<input type="checkbox" name="filter" value="'+date+'" onclick="updateStatistics();" id="date_'+date+'" checked><label for="date_'+date+'">'+date+'売上分</label>';
+              list.appendChild(dom);
+            }
+          }
+          let dom = document.createElement("li");
+          dom.innerHTML='<input type="checkbox" name="filter" value="already" onclick="updateStatistics();" id="already" checked><label for="already">本日お渡し完了分</label>';
+          list.appendChild(dom);
+          dom = document.createElement("li");
+          dom.innerHTML='<input type="checkbox" name="filter" value="yet" onclick="updateStatistics();" id="yet"><label for="yet">本日お渡ししてない分</label>';
+          list.appendChild(dom);
+          first=false;
+        }
+        updateStatistics();
+      });
+      function updateStatistics(){
+        var dates = document.getElementsByName('filter');
+        var item1=0 ,item2=0 ,item3=0 ,itemSum=0 ,price =0;
+        for(var dom in dates){
+          var list;
+
+          if(dates[dom].checked){
+
+            switch(dates[dom].value){
+              case 'yet':
+              list = sumList[now_date]._deliver.yet;
+              break;
+              case 'already':
+              list = sumList[now_date]._deliver.already;
+              break;
+              default:
+              list = sumList[dates[dom].value];
+              break;
+            }
+            item1 += list.item1;
+            item2 += list.item2;
+            item3 += list.item3;
+            itemSum += list.itemSum;
+            price +=list.price;
+          }
+        }
+        var table = document.querySelector(".Statistics_table tbody").children;
+        table[0].children[0].innerHTML = item1 +"個";
+        table[0].children[1].innerHTML = item2 +"個";
+        table[0].children[2].innerHTML = item3 +"個";
+        table[0].children[3].innerHTML = itemSum +"個";
+        table[1].children[1].innerHTML = "￥"+price +"-";
+
+      }
+      function closePanel(){
+        document.getElementById('statConfig').style.display="none";
+      }
+      function openPanel(){
+        document.getElementById('statConfig').style.display="block";
+      }
+
+</script>
+<style>
+  .zzz{
+    position:fixed;
+    left:5%; top:60%;
+  }
+
+  .filter{
+    position:center;
+    font-size:50%;
+    background:#a9e54d;
+    width:90%;
+    text-shadow:1px 1px 0 #fff,-1px 1px 0 #fff,1px -1px 0 #fff,-1px -1px 0 #fff;
+    border-radius:5px;
+    padding:1px;
+    font-family:"Gulim",sans-serif;
+    font-weight:600;
+  }
+
+  .id_button{
+    width:6em; height:3em;
+    background-color:rgba(74,145,47,0.75);
+    text-shadow:1px 1px 0 #fff,-1px 1px 0 #fff,1px -1px 0 #fff,-1px -1px 0 #fff;
+  }
+
+  .Statistics_table th,
+  .Statistics_table td {
+    border:solid 1px #fff;
+    width:25%;
+  }
+  .id_table{
+    position:fixed;
+    display:block;
+    overflow-y: scroll;
+    border-collapse: collapse;
+    text-align:left;
+    background-color:rgba(47,74,145,0.75);
+    left:5%; top:10%;
+    width:90%; height:50%;
+  }
+  .Statistics_table{
+    position:fixed;
+    border-collapse: collapse;
+    text-align:center;
+    background-color:rgba(47,74,145,0.75);
+    left:5%; bottom:5%;
+    width:90%; height:25%;
+  }
+  /*ここから下変更画面用css*/
+  .hidden{
+    visibility:collapse;
+    width: calc(80%);
+    height:calc(50%);
+    background-color:#dd8300;
+    position:fixed;
+    left:10%; top:10%;
+    z-index:3;
+  }
+
+  td{text-align:center;}
+
+  .order,.cmp,.notcmp,.back,.Product,.sum,.reset,.submit{position:absolute;}
+  .order{top:3%;}
+  .cmp{right:20%; top:3%;}
+  .notcmp{right:35%; top:3%;}
+
+  .order{font-size:120%;}
+  .image{font-size:75%;}
+  .pm{font-size:90%;}
+  .tp{font-size:70%;}
+  .sum{font-size:120%;}
+  .reset{font-size:90%;}
+  .submit{font-size:90%;}
+
+  .pm{width:25px; height:25px;}
+
+  @media screen and (min-width:900px){/*横画面用*/
+    .hidden{height:calc(70%);}
+  }
+
+  /*変更画面用cssここまで*/
+  /*load*/
+  .bg{
+    position:fixed;
+    top:0px;
+    right:0px;
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0,0.4);
+    z-index:30;
+  }
+  .loading2{
+    color: #FFF;
+    position :fixed;
+    top: 50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    text-shadow: none;
+    text-align: center;
+  }
+  .loading2 p{
+    font-size:150%;
+  }
+  .load{
+    left:50%;
+    width:100px;
+    height:100px;
+    border-radius: 100px;
+  }
+  .way{
+    position:static;
+    width:100%;
+    height:80px;
+    vertical-align: middle;
+  }
+  .round{
+  }
+  .round{
+    animation: animation-dash 5s ease-in-out 0s infinite normal;
+    transform:translate(-10%,-10%);
+    font-size:20px;
+    color: rgba(255,255,255,0.1);
+    width:auto;
+    position:relative;
+    vertical-align: middle;
+    width:0;
+    overflow: visible;
+  }
+  .loading2 button{
+    color: white;
+    background: rgba(0,0,0,0.2);
+    border-radius: 30px;
+    outline-color: white;
+    padding:10px;
+    border: 2px solid white;
+    animation: animation-button-appears 10s ease 0s;
+  }
+  .loading2 button:active {
+    border-color: #AAA;
+    color:#AAA;
+    background: rgba(0,0,0,0.4);
+
+  }
+  @keyframes animation-dash {
+    0%{left:0px;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+    20%{left:50%;top:0%; font-size: 30px;color:rgba(255,255,255,1);}
+    50%{left:100%;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+    70%{left:50%;top:0%; font-size: 30px;color:rgba(255,255,255,1);}
+    100%{left:0%;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+  }
+  @keyframes animation-button-appears{
+    0%{color: rgba(255,255,255,0);background: rgba(0,0,0,0.0);border-color:rgba(255,255,255,0);pointer-events: none;}
+    95%{color: rgba(255,255,255,0);background: rgba(0,0,0,0.0);border-color:rgba(255,255,255,0);pointer-events: none;}
+    100%{color: rgba(255,255,255,1);background: rgba(0,0,0,0.2);border-color:rgba(255,255,255,1);pointer-events: auto;}
+  }
+
+</style>
+<style>
+
+  /*デフォルトは未配達のみ*/
+  button[show_status="yet"]{}
+  button[show_status="past"]{
+    display:none;
+  }
+  button[show_status="already"]{
+    display:none;
+  }
+
+</style>
+</body></html>

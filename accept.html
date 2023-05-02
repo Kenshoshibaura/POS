@@ -1,0 +1,584 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<link rel="apple-touch-icon" href="img/accept.PNG" />
+<script type="text/javascript" src="taq.js"></script>
+<link rel="stylesheet" href="taq.css" type="text/css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Accept App</title></head><body>
+<span id="Realtime" class="time">00/00(0) 00:00:00</span>
+<button type="button" value="リロード" class="reload" onclick="reload()">リロード</button><br>
+<br>
+<span class="area">
+<table class="sticky_table" id="accept"  border="1">
+  <thead><tr>
+    <th style="width:225px">受注番号</th>
+    <th style="width:225px">経過時間</th>
+    <th style="width:150px">単味</th>
+    <th style="width:150px">ココア</th>
+    <th style="width:150px">抹茶</th>
+    <th style="width:150px">粉糖</th>
+    <th style="width:150px">合計</th>
+    <th style="width:150px">受渡し</th>
+    <th style="width:150px">注文</th>
+  </tr></thead>
+  <tbody id="body"><tr class="hidden" id="hid" style="height:70vh;">
+    <td>000</td>
+    <td>0分前</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>あり</td>
+    <td>0</td>
+    <td><button type="button" value="完了" class="cmp" onclick="completeRow(this)">完了</button></td>
+    <td><button type="button" value="削除" class="delete" onclick="deleteRow(this)">削除</button></td>
+  </tr></tbody>
+  <thead><tr id="under">
+    <th colspan="2">合計</th>
+    <th>0</th>
+    <th>0</th>
+    <th>0</th>
+    <th></th>
+    <th>0</th>
+    <th colspan="2"><button onclick ="mute(this)" id="mute"value="muted" >🔇ミュート中</button></th>
+  </tr></thead>
+</table>
+</span>
+<audio src="pingpong.mp3" preload="auto" id="audio"></audio>
+<div class="bg" id="loadicon">
+  <div class="loading">
+    <p>データベース接続中...</p>
+    <div class="way"><div class="round">●</div></div>
+    <button onclick="location.reload();">再読み込み</button>
+  </div>
+</div>
+<script>
+  socket = io.connect('https://socket.taq-system.tk',{query:{"type":"受信"}});
+socket.on("connect",function(){setTimeout(function(){document.getElementById("loadicon").style.display="none";banner("接続完了","サーバーと接続が完了しました");},500);});
+socket.on("disconnect",function(){document.getElementById("loadicon").style.display="block";});
+
+window.onload = setTimeout(function(){
+  socket.emit("get_orders","");
+},500);
+orderData = {};
+var initialized = false;
+socket.on("get_orders",function(msg){
+  banner("同期完了","オーダー情報の同期が完了しました。");
+  if(!initialized){
+    msg.forEach(function(json){addjson(json);});
+    console.log(orderData);
+    initialized = true;
+  }
+  //else アップデート
+  calcTime();
+});
+
+function addjson(json){
+  var idname = "No"+json.id;
+  orderData[idname] = json;
+  adddata(json.id);
+}
+
+function reload(){
+  location.reload();
+}
+socket.on("order",function(msg){
+  var id = "No" + msg.id;
+  orderData[id] = msg;
+  adddata(msg.id);
+  console.log(msg);
+  playbeep();
+  calcTime();
+});
+function adddata(order_id){
+  var orderNo = "No"+order_id;
+  var table=document.getElementById('accept');
+  var row_len=table.rows.length;
+  row_len--;
+
+  var row=table.insertRow(row_len);
+  var cell1=row.insertCell(-1);
+  var cell2=row.insertCell(-1);
+  var cell3=row.insertCell(-1);
+  var cell4=row.insertCell(-1);
+  var cell5=row.insertCell(-1);
+  var cell6=row.insertCell(-1);
+  var cell7=row.insertCell(-1);
+  var cell8=row.insertCell(-1);
+  var cell9=row.insertCell(-1);
+  row.setAttribute("id",orderNo);
+  var cmp='<button value="完了" class="cmp" onclick="completeRow(this)"/>完了</button>';
+  var del='<button value="削除" class="delete" onclick="deleteRow(this)"/>削除</button>';
+
+  var id=set3fig(orderData[orderNo].id);
+  var time=Math.floor(Math.random()*10);
+  var menu1=parseInt(orderData[orderNo].item1);
+  var menu2=parseInt(orderData[orderNo].item2);
+  var menu3=parseInt(orderData[orderNo].item3);
+
+  var sugar=orderData[orderNo].sugar;
+
+  cell1.innerHTML=id;
+  cell2.innerHTML=time+"分前";
+  cell3.innerHTML=menu1;
+  cell4.innerHTML=menu2;
+  cell5.innerHTML=menu3;
+
+  if(sugar==1){cell6.innerHTML="Yes";}
+  if(sugar==0){cell6.innerHTML="×";}
+
+  cell7.innerHTML=menu1+menu2+menu3;
+  cell8.innerHTML=cmp;
+  cell9.innerHTML=del;
+
+  sum('accept');
+}
+function undodata(order_id){
+  var orderNo = "No"+order_id;
+  var table=document.getElementById('accept');
+  var row_len=table.rows.length;
+  row_len--;
+
+  var row=table.insertRow(0);
+  var cell1=row.insertCell(-1);
+  var cell2=row.insertCell(-1);
+  var cell3=row.insertCell(-1);
+  var cell4=row.insertCell(-1);
+  var cell5=row.insertCell(-1);
+  var cell6=row.insertCell(-1);
+  var cell7=row.insertCell(-1);
+  var cell8=row.insertCell(-1);
+  var cell9=row.insertCell(-1);
+  row.setAttribute("id",orderNo);
+  var cmp='<button value="完了" class="cmp" onclick="completeRow(this)"/>完了</button>';
+  var del='<button value="削除" class="delete" onclick="deleteRow(this)"/>削除</button>';
+
+  var id=set3fig(orderData[orderNo].id);
+  var time=Math.floor(Math.random()*10);
+  var menu1=parseInt(orderData[orderNo].item1);
+  var menu2=parseInt(orderData[orderNo].item2);
+  var menu3=parseInt(orderData[orderNo].item3);
+
+  var sugar=orderData[orderNo].sugar;
+
+  cell1.innerHTML=id;
+  cell2.innerHTML=time+"分前";
+  cell3.innerHTML=menu1;
+  cell4.innerHTML=menu2;
+  cell5.innerHTML=menu3;
+
+  if(sugar==1){cell6.innerHTML="Yes";}
+  if(sugar==0){cell6.innerHTML="×";}
+
+  cell7.innerHTML=menu1+menu2+menu3;
+  cell8.innerHTML=cmp;
+  cell9.innerHTML=del;
+
+  sum('accept');
+}
+
+var fin = false;
+function completeRow(obj){
+  showAlert('完了確認',"注文番号"+obj.parentNode.parentNode.id+' の注文を完了してよろしいですか？','confirm','completeRow2(document.getElementById("'+obj.parentNode.parentNode.id+'").childNodes[7].childNodes[0])');
+
+}
+function completeRow2(obj){
+  var tr=obj.parentNode.parentNode.id;
+  socket.json.emit("finish",{"id":tr});
+  obj.disabled=true;
+  obj.style.background="#3a5e77";
+  obj.parentNode.parentNode.style.background="rgba(0,0,0,0.5)";
+  obj.parentNode.parentNode.children[8].children[0].disabled=true;
+  obj.parentNode.parentNode.children[8].children[0].style.background="#772F22";
+  sum('accept');
+  fin =true;
+}
+socket.on("finish r",function(msg){
+  var id =  msg.id;
+  delete orderData[id];
+  console.log(id);
+  if(document.getElementById(id)){
+    if(fin){
+    document.getElementById(id).parentNode.deleteRow(document.getElementById(id).sectionRowIndex);
+    fin=false;
+    }
+    else{
+      var obj = document.getElementById(id).children[8].children[0];
+      obj.value="OK!";
+      obj.setAttribute("onclick","okay(this)");
+      obj.style.background="#3a5ee7"
+      obj.parentNode.parentNode.style.background="rgba(0,0,0,0.5)";
+      obj.parentNode.parentNode.children[7].children[0].disabled=true;
+      obj.parentNode.parentNode.children[7].children[0].value="お渡し済";
+      obj.parentNode.parentNode.children[7].children[0].style.background="#3a5e77";
+    }
+  }
+  sum('accept');
+
+});
+var isdelete =false;
+
+function deleteRow(obj){
+  showAlert('キャンセル確認',"注文番号"+obj.parentNode.parentNode.id+' の注文をキャンセルしますか？','confirm','deleteRow2(document.getElementById("'+obj.parentNode.parentNode.id+'").childNodes[8].childNodes[0])');
+
+}
+function deleteRow2(obj){
+  var tr=obj.parentNode.parentNode.id;
+  socket.json.emit("delete",{"id":tr});
+  obj.disabled=true;
+  obj.style.background="#772F22";
+  obj.parentNode.parentNode.style.textShadow="1px 1px 0 #555, -1px 1px 0 #555, 1px -1px 0 #555, -1px -1px 0 #555";
+  obj.parentNode.parentNode.style.background="rgba(0,0,0,0.5)";
+  obj.parentNode.parentNode.children[7].children[0].disabled=true;
+  obj.parentNode.parentNode.children[7].children[0].style.background="#3a5e77";
+  isdelete= true;
+  sum('accept');
+}
+socket.on("delete r",function(msg){
+  var id =  msg.id;
+  delete orderData[id];
+  if(document.getElementById(id)){
+    if(isdelete){
+      document.getElementById(id).parentNode.deleteRow(document.getElementById(id).sectionRowIndex);
+      isdelete =true;
+    }
+    else{
+      var obj = document.getElementById(id).children[8].children[0];
+      obj.value="OK!";
+      obj.setAttribute("onclick","okay(this)");
+      obj.parentNode.parentNode.style.textShadow="1px 1px 0 #555, -1px 1px 0 #555, 1px -1px 0 #555, -1px -1px 0 #555";
+      obj.parentNode.parentNode.style.background="rgba(0,0,0,0.5)";
+      obj.parentNode.parentNode.children[7].children[0].disabled=true;
+      obj.parentNode.parentNode.children[7].children[0].value="削除済み";
+      obj.parentNode.parentNode.children[7].children[0].style.background="#772F22";
+
+    }
+  }
+  sum('accept');
+
+});
+socket.on("info",function(msg){console.log(msg);socket.emit('newinfo',msg);});
+socket.on("newinfo",function(msg){
+  console.log(msg);
+  var id = "No" + msg.id;
+  orderData[id] = msg;
+  if(document.getElementById(id)==null){
+    banner("注文未完了",msg.id+"番のオーダーが完了していませんでした。",msg.id+"番のお渡しが　<br><s>完了</s> → 未了<br>にセットされました。<br>速やかに調理をお願いします。");
+
+    adddata(msg.id);
+    console.log(msg);
+  }
+else{
+
+  var cell = document.getElementById(id).childNodes;
+  var newid=set3fig(orderData[id].id);
+  var time=Math.floor(Math.random()*10);
+  var menu1=parseInt(orderData[id].item1);
+  var menu2=parseInt(orderData[id].item2);
+  var menu3=parseInt(orderData[id].item3);
+  var sugar=orderData[id].sugar;
+
+  //注文の変化を調査
+  console.log(parseInt(cell[2].innerHTML)+","+menu1);
+  console.log(parseInt(cell[3].innerHTML)+","+menu2);
+  console.log(parseInt(cell[4].innerHTML)+","+menu3);
+  var str = msg.id +"番の注文の変更が発生しました。変更点は以下の通りです。<br><br>";
+  if(parseInt(cell[2].innerHTML)!=menu1) str += "プレーン:<s>" + cell[2].innerHTML + "</s>　→　" + menu1 + "<br>";
+  if(parseInt(cell[3].innerHTML)!=menu2) str += "ココア　:<s>" + cell[3].innerHTML + "</s>　→　" + menu2 + "<br>";
+  if(parseInt(cell[4].innerHTML)!=menu3) str += "抹茶　　:<s>" + cell[4].innerHTML + "</s>　→　" + menu3 + "<br>";
+
+  if(cell[5].innerHTML == "Yes" && sugar == 0)str += "　粉糖　:<s>Yes</s>　→　×<br>";
+  if(cell[5].innerHTML == "×" && sugar == 1)str += "　粉糖　:<s>×</s>　→　Yes<br>";
+  str += "<br>速やかに調理をお願いします。";
+  banner("注文変更",msg.id+"番の注文に変更がありました。詳しくはここをタップ。",str);
+
+
+  //
+  cell[0].innerHTML=newid;
+  cell[1].innerHTML=time+"分前";
+  cell[2].innerHTML=menu1;
+  cell[3].innerHTML=menu2;
+  cell[4].innerHTML=menu3;
+
+  if(sugar==1){cell[5].innerHTML="Yes";}
+  if(sugar==0){cell[5].innerHTML="×";}
+
+  cell[6].innerHTML=menu1+menu2+menu3;
+}
+document.getElementById(id).className = 'change';
+setTimeout(function(){document.getElementById(id).className = '';},20000);
+    console.log(msg);
+    playbeep();
+    calcTime();
+});
+function okay(obj){
+  tr=obj.parentNode.parentNode;
+  tr.parentNode.deleteRow(tr.sectionRowIndex);
+  sum('accept');
+}
+
+function sum(id){
+  var table=document.getElementById(id);
+  var under=document.getElementById('under');
+  var row_len=table.rows.length;
+  var sum=0;
+  var sumall=0;
+  for(var i=2;i<5;i++){
+    for(var j=2;j<row_len;j++){
+      sum+=parseInt(table.rows[j].cells[i].innerHTML);
+    }
+    under.cells[i-1].innerHTML=sum;
+    sumall+=parseInt(sum);
+    var sum=0;
+  }
+  under.cells[5].innerHTML=sumall;
+  var listSum = 70- (document.getElementById("body").childNodes.length-1)*7;
+  console.log(document.getElementById("hid").style.height);
+
+  document.getElementById("hid").style.height = listSum+"vh";
+}
+
+setInterval('showClock()',1000);
+
+var calcTime = function (){
+  for(var id_num in orderData){
+    let elem = document.getElementById(id_num).children[1];
+    let data = orderData[id_num];
+    let nowTime = new Date().getTime();
+    let prevTime = new Date(data.time).getTime();
+    let time = nowTime - prevTime;
+    time = (time-(time%60000))/60000;
+    elem.innerHTML = time + "分前";
+  }
+  console.log("TimeCalc");
+
+}
+setInterval(calcTime,1000);
+
+window.onload = function(){
+  audio = document.getElementById("audio");
+  audio.load();
+  audio.muted = true;
+}
+playbeep  =function(){
+  setTimeout(function(){
+    audio.play();
+  },100);
+};
+var muting;
+function mute(obj){
+  if(obj.value=="muted"){
+    audio.muted=true;
+    audio.play();
+    obj.innerHTML = "　設定中…　";
+    obj.value="ok";
+    setTimeout(function(){audio.pause();audio.crrentTime=0.0},300);
+    muting = setTimeout(function(){audio.muted= false;obj.innerHTML="🎵　通知中　";},500);
+  }
+  else{
+    if(muting) clearTimeout(muting);
+    audio.muted = true;
+    obj.innerHTML = "🔇ミュート中";
+    obj.value= "muted";
+  }
+}
+</script>
+
+<style>
+@keyframes newinfo{
+    0%{background:rgba(255,255,0,0);}
+   40%{background:rgba(255,255,0,1);}
+   60%{background:rgba(255,255,0,1);}
+   90%{backgrouud:rgba(255,255,0,0);}
+}
+.change{
+animation:2s newinfo 30;
+}
+.sticky_table {
+  display:block;
+  position: relative;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  width: calc(100vw - 3.0rem);
+  height: calc(85vh);
+  border-collapse: collapse;
+  align:center;
+  text-align:center;
+  background-color:rgba(47,74,145,0.75);
+}
+
+.area{
+  position:fixed;
+  left:20px;
+  top:10%;
+}
+
+.sticky_table th,
+.sticky_table td {
+  height:calc(10vh);
+  width:calc(100vw-3.0rem);
+  font-size:150%;
+  white-space:nowrap;
+}
+.sticky_table thead {
+  background-color:rgba(47,74,145,0.8);
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  white-space:nowrap;
+}
+
+.hidden{visibility:collapse;}
+
+.cmp,
+.delete{
+  display:inline-block;
+  text-decoration:none;
+  border-bottom:solid 4px #627295;
+  color:#000;
+  font-weight:600;
+  text-align:center;
+  vertical-align:middle;
+  text-shadow:1px 1px 0 #fff,-1px 1px 0 #fff,1px -1px 0 #fff,-1px -1px 0 #fff;
+  border-radius:5px;
+  padding:1px;
+  height:35px;
+
+}
+.cmp,.delete{font-size:90%;}
+.cmp{width:90px;}
+.delete{width:75px;}
+.demo{width:125px;}
+
+
+#mute{
+  z-index:10;
+  font-size:100%;
+  background:#a9e54d;
+  position:center;
+  width:90%;
+  text-shadow:1px 1px 0 #fff,-1px 1px 0 #fff,1px -1px 0 #fff,-1px -1px 0 #fff;
+  border-radius:5px;
+  padding:1px;
+  font-family:"Gulim",sans-serif;
+  font-weight:600;
+}
+
+@media screen and (min-width:900px){
+  .sticky_table{
+    height:calc(85vh);
+  }
+  .area{top:12%;}
+  .sticky_table th,
+  .sticky_table td {
+    font-size:125%;
+    height:calc(8vh);
+  }
+  .cmp{width:75px;}
+  .delete{width:50px;}
+  .cmp,.delete{height:30px;}
+}
+@media screen and (max-width:700px){
+  .sticky_table th,
+  .sticky_table td {
+    font-size:110%;
+    height:calc(8vh);
+  }
+  .cmp{width:80px;}
+  .delete{width:60px;}
+  .cmp,.delete{height:35px;}
+  #mute{font-size:90%;}
+}
+
+@media screen and (max-width:600px){
+  .sticky_table th,
+  .sticky_table td {
+    font-size:100%;
+    height:calc(8vh);
+  }
+  .cmp{width:75px;}
+  .delete{width:50px;}
+  .cmp,.delete{height:30px;}
+  #mute{font-size:80%;}
+/*  .time{font-size:100%;}
+  .reload{font-size:75%; height:30px;}*/
+}
+/*load*/
+.bg{
+  position:fixed;
+  top:0px;
+  right:0px;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.4);
+  z-index:30;
+}
+.loading{
+  color: #FFF;
+  position :fixed;
+  top: 50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  text-shadow: none;
+  text-align: center;
+}
+.loading p{
+  font-size:150%;
+}
+.load{
+  left:50%;
+  width:100px;
+  height:100px;
+  border-radius: 100px;
+}
+.way{
+  position:static;
+  width:100%;
+  height:80px;
+  vertical-align: middle;
+}
+.round{
+}
+.round{
+  animation: animation-dash 5s ease-in-out 0s infinite normal;
+  transform:translate(-10%,-10%);
+  font-size:20px;
+  color: rgba(255,255,255,0.1);
+  width:auto;
+  position:relative;
+  vertical-align: middle;
+  width:0;
+  overflow: visible;
+}
+.loading button{
+  color: white;
+  background: rgba(0,0,0,0.2);
+  border-radius: 30px;
+  outline-color: white;
+  padding:10px;
+  border: 2px solid white;
+  animation: animation-button-appears 10s ease 0s;
+}
+.loading button:active {
+  border-color: #AAA;
+  color:#AAA;
+  background: rgba(0,0,0,0.4);
+
+}
+@keyframes animation-dash {
+  0%{left:0px;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+  20%{left:50%;top:0%; font-size: 30px;color:rgba(255,255,255,1);}
+  50%{left:100%;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+  70%{left:50%;top:0%; font-size: 30px;color:rgba(255,255,255,1);}
+  100%{left:0%;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+}
+@keyframes animation-button-appears{
+  0%{color: rgba(255,255,255,0);background: rgba(0,0,0,0.0);border-color:rgba(255,255,255,0);pointer-events: none;}
+  95%{color: rgba(255,255,255,0);background: rgba(0,0,0,0.0);border-color:rgba(255,255,255,0);pointer-events: none;}
+  100%{color: rgba(255,255,255,1);background: rgba(0,0,0,0.2);border-color:rgba(255,255,255,1);pointer-events: auto;}
+}
+
+</style>
+
+</body></html>

@@ -1,0 +1,73 @@
+.set,
+.all,
+.cmp,
+.notcmp,
+.back,
+.image,
+.pm,
+.tp,
+.popup,.popdown,/**/
+.reset,
+.submit{
+  display:inline-block;
+  text-decoration:none;
+  border-bottom:solid 4px #627295;
+  color:#000;
+  font-weight:600;
+  text-align:center;
+  vertical-align:middle;
+  text-shadow:1px 1px 0 #fff,-1px 1px 0 #fff,1px -1px 0 #fff,-1px -1px 0 #fff;
+}
+
+.order{left:5%; top:10%;}
+.set{left:45%; top:10%;}
+.all{right:10%; top:10%;}
+.cmp{right:20%; top:3%;}
+.notcmp{right:35%; top:3%;}
+.back{right:5%; top:3%;}
+.Product{top:25%;}
+.sum{right:10%; bottom:20%;}
+.reset{left:15%; bottom:5%;}
+.submit{right:15%; bottom:5%;}
+
+.order{font-size:200%;}
+.set{font-size:60%;}
+.all{font-size:120%;}
+.image{font-size:100%;}
+.pm{font-size:120%;}
+.tp{font-size:75%;}
+.sum{font-size:200%;}
+.reset{font-size:120%;}
+.submit{font-size:120%;}
+
+.set{width:20%;}
+.all{width:15%;}
+.image{width:75%;}
+.pm{width:30px; height:30px;}
+.tp{width:80px; height:25px;}
+.reset{width:25%;}
+.cmp{height:30px;}
+.notcmp{height:30px;}
+.back{height:30px;}
+.submit{width:25%;}
+.photo{width:95%;}
+
+.set{border-radius:5px;}
+.image{border-radius:5%}
+.pm{border-radius:100%;}
+.tp{border-radius:10%;}
+.cmp{border-radius:5px;}
+.notcmp{border-radius:5px;}
+.back{border-radius:5px;}
+.reset{border-radius:5px;}
+.submit{border-radius:5px;}
+
+.order,.set,.all,.Product,.sum,.reset,.submit{margin:1%;}
+.set,.reset,.submit{padding:10px;}
+.image{padding:0.5em 1em;}
+
+
+@media screen and (max-width:900px){/*縦画面用*/
+
+
+}

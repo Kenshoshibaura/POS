@@ -1,0 +1,414 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+  <link rel="apple-touch-icon" href="img/othello.PNG" />
+<!---  <script type="text/javascript" src="othello.js"></script>
+  <link rel="stylesheet" href="othello.css" type="text/css">-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Othello App</title></head><body>
+
+<span id="message">ゲームを開始します</span>
+
+<table id="othello_table">
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td>○</td><td>●</td><td></td><td></td></tr>
+  <tr><td></td><td></td><td>●</td><td>○</td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+</table>
+
+<div class="score">
+  score<br>
+  ●：<span id="black">2</span>
+  ○：<span id="white">2</span>
+</div>
+
+<script>
+var now=[['0','0','0','0','0','0'],
+         ['0','0','0','0','0','0'],
+         ['0','0','2','1','0','0'],
+         ['0','0','1','2','0','0'],
+         ['0','0','0','0','0','0'],
+         ['0','0','0','0','0','0'],]
+window.onload=black_select();
+function refresh(){
+  var table=document.getElementById('othello_table');
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if(now[i][j]==0){
+
+      }else if(now[i][j]==1){
+        now[i][j]=1;
+        //table.rows[i].cells[j].innerHTML='●';
+      }else if(now[i][j]==2){
+        now[i][j]=2;
+        //table.rows[i].cells[j].innerHTML='○';
+      }else if(now[i][j]==3){
+        now[i][j]=1;
+        //table.rows[i].cells[j].innerHTML='●';
+      }else if(now[i][j]==4){
+        now[i][j]=2;
+        //table.rows[i].cells[j].innerHTML='○';
+      }else if(now[i][j]==5){
+
+      }else{
+        alert('error');
+      }
+    }
+  }
+}
+//window.onload=score_update();
+
+function black_select(){
+  refresh();
+  console.log(now[0][0],now[0][1],now[0][2],now[0][3],now[0][4],now[0][5],
+              now[1][0],now[1][1],now[1][2],now[1][3],now[1][4],now[1][5],
+              now[2][0],now[2][1],now[2][2],now[2][3],now[2][4],now[2][5],
+              now[3][0],now[3][1],now[3][2],now[3][3],now[3][4],now[3][5],
+              now[4][0],now[4][1],now[4][2],now[4][3],now[4][4],now[4][5],
+              now[5][0],now[5][1],now[5][2],now[5][3],now[5][4],now[5][5],);
+  var message=document.getElementById('message');
+  message.innerHTML='黒の手番です';
+  //置けるところを探しnow[i][j]を5にする
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if((now[i][j]==0)//&&
+        //((now[i][j-1]==2)||(now[i][j+1]==2)||(now[i-1][j]==2)||(now[i+1][j]==2)||
+         //(now[i-1][j-1]==2)||(now[i+1][j-1]==2)||(now[i-1][j+1]==2)||(now[i+1][j+1]==2))){
+         ){
+           now[i][j]=5;
+         }
+    }
+  }
+
+  var table=document.getElementById('othello_table');
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if(now[i][j]==5){//5
+        var select='<button class="push_black" onclick="black_action('+i+','+j+')"></button>';
+        table.rows[i].cells[j].innerHTML=select;
+      }
+    }
+  }
+}
+function white_select(){
+  refresh();
+  console.log(now[0][0],now[0][1],now[0][2],now[0][3],now[0][4],now[0][5],
+              now[1][0],now[1][1],now[1][2],now[1][3],now[1][4],now[1][5],
+              now[2][0],now[2][1],now[2][2],now[2][3],now[2][4],now[2][5],
+              now[3][0],now[3][1],now[3][2],now[3][3],now[3][4],now[3][5],
+              now[4][0],now[4][1],now[4][2],now[4][3],now[4][4],now[4][5],
+              now[5][0],now[5][1],now[5][2],now[5][3],now[5][4],now[5][5],);
+  document.getElementById('message').innerHTML='白の手番です';
+  //置けるところを探しnow[i][j]を5にする
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if((now[i][j]==0)//&&
+        //((now[i][j-1]==1)||(now[i][j+1]==1)||(now[i-1][j]==1)||(now[i+1][j]==1)||
+         //(now[i-1][j-1]==1)||(now[i+1][j-1]==1)||(now[i-1][j+1]==1)||(now[i+1][j+1]==1))){
+         ){
+           now[i][j]=5;
+         }
+    }
+  }
+
+  var table=document.getElementById('othello_table');
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if(now[i][j]==5){//5
+        var select='<button class="push_white" onclick="white_action('+i+','+j+')"></button>';
+        table.rows[i].cells[j].innerHTML=select;
+      }
+    }
+  }
+}
+function black_action(x,y){
+  var table=document.getElementById('othello_table');
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if(now[i][j]==5){//5
+        now[i][j]=0;
+        table.rows[i].cells[j].innerHTML='';
+      }
+    }
+  }
+  now[x][y]=1;
+  table.rows[x].cells[y].innerHTML='●';
+  //上下確認後反転
+  for(var i=x+1;i<6;i++){
+    if(now[i][y]==2){now[i][y]=4;}
+    if(now[i][y]==0){break;}
+    if(now[i][y]==1){
+      for(var j=0;j<6;j++){
+        for(var k=0;k<6;k++){
+          if(now[j][k]==4){
+            now[j][k]==1;
+            table.rows[j].cells[k].innerHTML='●';
+          }
+        }
+      }
+      break;
+    }
+  }
+  for(var m=0;m<6;m++){
+    for(var n=0;n<6;n++){
+      if(now[m][n]==4){
+        now[m][n]=2;
+        //table.rows[m].cells[m].innerHTML='○';
+      }
+    }
+  }
+  for(var i=x-1;i>0;i--){
+    if(now[i][y]==2){now[i][y]=4;}
+    if(now[i][y]==0){break;}
+    if(now[i][y]==1){
+      for(var j=0;j<6;j++){
+        for(var k=0;k<6;k++){
+          if(now[j][k]==4){
+            now[j][k]==1;
+            table.rows[j].cells[k].innerHTML='●';
+          }
+        }
+      }
+      break;
+    }
+  }
+  for(var m=0;m<6;m++){
+    for(var n=0;n<6;n++){
+      if(now[m][n]==4){
+        now[m][n]=2;
+        //table.rows[m].cells[m].innerHTML='○';
+      }
+    }
+  }
+  //左右確認後反転
+  for(var i=y+1;i<6;i++){
+    if(now[x][i]==2){now[x][i]=4;}
+    if(now[x][i]==0){break;}
+    if(now[x][i]==1){
+      for(var j=0;j<6;j++){
+        for(var k=0;k<6;k++){
+          if(now[j][k]==4){
+            now[j][k]==1;
+            table.rows[j].cells[k].innerHTML='●';
+          }
+        }
+      }
+      break;
+    }
+  }
+  for(var m=0;m<6;m++){
+    for(var n=0;n<6;n++){
+      if(now[m][n]==4){
+        now[m][n]=2;
+        //table.rows[m].cells[m].innerHTML='○';
+      }
+    }
+  }
+  for(var i=y-1;i>0;i--){
+    if(now[x][i]==2){now[x][i]=4;}
+    if(now[x][i]==0){break;}
+    if(now[x][i]==1){
+      for(var j=0;j<6;j++){
+        for(var k=0;k<6;k++){
+          if(now[j][k]==4){
+            now[j][k]==1;
+            table.rows[j].cells[k].innerHTML='●';
+          }
+        }
+      }
+      break;
+    }
+  }
+  for(var m=0;m<6;m++){
+    for(var n=0;n<6;n++){
+      if(now[m][n]==4){
+        now[m][n]=2;
+        //table.rows[m].cells[m].innerHTML='○';
+      }
+    }
+  }
+  score_update();
+  finish_judge();
+  white_select();
+}
+function white_action(x,y){
+  var table=document.getElementById('othello_table');
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if(now[i][j]==5){//5
+        now[i][j]=0;
+        table.rows[i].cells[j].innerHTML='';
+      }
+    }
+  }
+  now[x][y]=2;
+  table.rows[x].cells[y].innerHTML='○';
+  //上下確認後反転
+  for(var i=x+1;i<6;i++){
+    if(now[i][y]==1){now[i][y]=3;}
+    if(now[i][y]==0){break;}
+    if(now[i][y]==2){
+      for(var j=0;j<6;j++){
+        for(var k=0;k<6;k++){
+          if(now[j][k]==3){
+            now[j][k]==2;
+            table.rows[j].cells[k].innerHTML='○';
+          }
+        }
+      }
+      break;
+    }
+  }
+  for(var m=0;m<6;m++){
+    for(var n=0;n<6;n++){
+      if(now[m][n]==3){
+        now[m][n]=1;
+        //table.rows[m].cells[m].innerHTML='●';
+      }
+    }
+  }
+  for(var i=x-1;i>0;i--){
+    if(now[i][y]==1){now[i][y]=3;}
+    if(now[i][y]==0){break;}
+    if(now[i][y]==2){
+      for(var j=0;j<6;j++){
+        for(var k=0;k<6;k++){
+          if(now[j][k]==3){
+            now[j][k]==2;
+            table.rows[j].cells[k].innerHTML='○';
+          }
+        }
+      }
+      break;
+    }
+  }
+  for(var m=0;m<6;m++){
+    for(var n=0;n<6;n++){
+      if(now[m][n]==3){
+        now[m][n]=1;
+        //table.rows[m].cells[m].innerHTML='●';
+      }
+    }
+  }
+  //左右確認後反転
+  for(var i=y+1;i<6;i++){
+    if(now[x][i]==1){now[x][i]=3;}
+    if(now[x][i]==0){break;}
+    if(now[x][i]==2){
+      for(var j=0;j<6;j++){
+        for(var k=0;k<6;k++){
+          if(now[j][k]==3){
+            now[j][k]==2;
+            table.rows[j].cells[k].innerHTML='○';
+          }
+        }
+      }
+      break;
+    }
+  }
+  for(var m=0;m<6;m++){
+    for(var n=0;n<6;n++){
+      if(now[m][n]==3){
+        now[m][n]=1;
+        //table.rows[m].cells[m].innerHTML='●';
+      }
+    }
+  }
+  for(var i=y-1;i>0;i--){
+    if(now[x][i]==1){now[x][i]=3;}
+    if(now[x][i]==0){break;}
+    if(now[x][i]==2){
+      for(var j=0;j<6;j++){
+        for(var k=0;k<6;k++){
+          if(now[j][k]==3){
+            now[j][k]==2;
+            table.rows[j].cells[k].innerHTML='○';
+          }
+        }
+      }
+      break;
+    }
+  }
+  for(var m=0;m<6;m++){
+    for(var n=0;n<6;n++){
+      if(now[m][n]==3){
+        now[m][n]=1;
+        //table.rows[m].cells[m].innerHTML='●';
+      }
+    }
+  }
+  score_update();
+  finish_judge();
+  black_select();
+}
+function score_update(){
+  var black_number=0;
+  var white_number=0;
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if(now[i][j]==1){black_number++;}
+      else if(now[i][j]==2){white_number++;}
+    }
+  }
+  document.getElementById('black').innerHTML=black_number;
+  document.getElementById('white').innerHTML=white_number;
+}
+function finish_judge(){
+  var remain=0;
+  for(var i=0;i<6;i++){
+    for(var j=0;j<6;j++){
+      if(now[i][j]==0){remain++;}
+    }
+  }
+  if(remain==0){
+    judge();
+    //location.reload();
+  }
+}
+function judge(){
+
+}
+</script>
+
+<style>
+body{text-align: center;}
+
+#message{
+  position:fixed;
+  left:180px;
+  top:20px;
+  font-size:150%;
+}
+
+#othello_table{
+  position:fixed;
+  left:80px;
+  top:80px;
+  border-collapse:collapse;
+  border:solid 1px #000;
+}
+#othello_table td{width:50px; height:50px; border:solid 1px #000;}
+
+.score{
+  position:fixed;
+  left:180px;
+  top:450px;
+  font-size:150%;
+}
+
+.push_black{
+  width:50px;
+  height:50px;
+  background-color:#111100;
+}
+.push_white{
+  width:50px;
+  height:50px;
+  background-color:#222222;
+}
+
+</style>
+
+</body></html>

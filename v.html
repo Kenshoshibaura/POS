@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="initial-scale=1.0" />
+    <title>スマホバイブ</title>
+    <script>
+      window.addEventListener("load", function(){
+        document.getElementById("vibrate").addEventListener("click", function(){
+          if(window.navigator.vibrate){
+            window.navigator.vibrate([200,200,200,200,200]);
+          }else if(window.navigator.mozVibrate){
+            window.navigator.mozVibrate([200,200,200]);
+          }else if(window.navigator.webkitVibrate){
+            window.navigator.webkitVibrate([200]);
+          }else{
+            alert("sorry (T-T)");
+          }
+        }, true);
+      }, true);
+    </script>
+  </head>
+
+  <body>
+    <form>
+      <input type="button" id="vibrate" value="ぶるぶる">
+    </form>
+  </body>
+</html>

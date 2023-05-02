@@ -1,0 +1,486 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+  <link rel="apple-touch-icon" href="img/order.PNG" />
+  <script type="text/javascript" src="taq.js"></script>
+  <script type="text/javascript" src="order.js"></script>
+  <link rel="stylesheet" href="taq.css" type="text/css">
+  <link rel="stylesheet" href="order.css" type="text/css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Order App</title></head><body>
+<span id="Realtime"class="time">00/00(0) 00:00:00</span><br><br>
+<button class="reload" onclick="location.reload();">⇄</button><br>
+<span class="order">受付番号：<span id="No"> 001</span></span>
+<button class="set" onclick="set()" id="set">銀河セット</button><span class="all">
+<button class="pm longsub0" id="sub0">-</button>ALL<button type="button" class="pm longadd0" id="add0">+</button>
+</span><br><br><br>
+<table class="Product"><tr>
+    <td><button class="image" onclick="add(0)" id="menu1"><img src="img/menu1.jpg" class="photo">プレーン</button></td>
+    <td><button class="image" onclick="add(1)" id="menu2"><img src="img/menu2.jpg" class="photo">ココア</button></td>
+    <td><button class="image" onclick="add(2)" id="menu3"><img src="img/menu3.jpg" class="photo">抹茶</button></td>
+    <td><button class="image" onclick="onoff1()"><img id="gazo1"  src="img/menu4.jpg" class="photo">粉糖</button></td>
+  </tr><tr>
+    <td><button class="pm longsub1" id="sub1">-</button><span class="qt number1">0</span> <button class="pm longadd1" id="add1">+</button></td>
+    <td><button class="pm longsub2" id="sub2">-</button> <span class="qt number2">0</span> <button class="pm longadd2" id="add2">+</button></td>
+    <td><button class="pm longsub3" id="sub3">-</button> <span class="qt number3">0</span> <button class="pm longadd3" id="add3">+</button></td>
+    <td><button class="tp"onclick="onoff1()">なし/あり</button></td>
+</tr></table><br>
+<span class="sum">計 <span id="sum1">0</span> 個 <span id="sum2">000</span> 円</span><br>
+<button class="reset" onclick="resetNo()">リセット</button>
+<button type="submit" class="submit" onclick="orderNo()">注文確定</button>
+<div id="soldout">
+  <span id="hidden">
+    プレーン
+      <label><input type="radio" name="menu1" onClick="soldout10(this.checked);" checked/> 販売中</label>
+      <label><input type="radio" name="menu1" onClick="soldout11(this.checked);"/> 売切れ</label><br>
+    ココア　
+      <label><input type="radio" name="menu2" onClick="soldout20(this.checked);" checked/> 販売中</label>
+      <label><input type="radio" name="menu2" onClick="soldout21(this.checked);"/> 売切れ</label><br>
+    抹茶　　
+      <label><input type="radio" name="menu3" onClick="soldout30(this.checked);" checked/> 販売中</label>
+      <label><input type="radio" name="menu3" onClick="soldout31(this.checked);"/> 売切れ</label><br></span>
+    <button class="popup" onclick="popup()"><span id="soldbutton">編集</span></button>
+</div>
+
+<!---追加項目選択画面ここから-->
+<div id="service_area">
+  <table class="servise_table"><tr>
+    <td><button class="image" onclick="add(0)" id="menu1"><img src="img/menu1.jpg" class="photo">プレーン</button></td>
+    <td><button class="image" onclick="add(1)" id="menu2"><img src="img/menu2.jpg" class="photo">ココア</button></td>
+    <td><button class="image" onclick="add(2)" id="menu3"><img src="img/menu3.jpg" class="photo">抹茶</button></td>
+  </tr><tr>
+    <td><span class="qt number1">0</span></td>
+    <td><span class="qt number2">0</span></td>
+    <td><span class="qt number3">0</span></td>
+  </tr></table>
+</div>
+<!---追加項目選択画面ここまで-->
+
+<!--ロードアイコン-->
+<div class="bg" id="loadicon">
+  <div class="loading">
+    <p>データベース接続中...</p>
+    <div class="way"><div class="round">●</div></div>
+    <button onclick="location.reload();">再読み込み</button>
+  </div>
+</div>
+<style>
+  .bg{
+    position:fixed;
+    top:0px;
+    right:0px;
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0,0.5);
+    z-index:30;
+  }
+  .loading{
+    color: #FFF;
+    font-family: Gothic;
+    position :fixed;
+    top: 50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    text-shadow: none;
+    text-align: center;
+  }
+  .loading p{
+    font-size:150%;
+  }
+  .load{
+    left:50%;
+    width:100px;
+    height:100px;
+    border-radius: 100px;
+  }
+  .way{
+    position:static;
+    width:100%;
+    height:80px;
+    vertical-align: middle;
+  }
+  .round{
+  }
+  .round{
+    animation: animation-dash 5s ease-in-out 0s infinite normal;
+    transform:translate(-10%,-10%);
+    font-size:20px;
+    color: rgba(255,255,255,0.1);
+    width:auto;
+    position:relative;
+    vertical-align: middle;
+    width:0;
+    overflow: visible;
+  }
+  .loading button{
+    color: white;
+    background: rgba(0,0,0,0.2);
+    border-radius: 30px;
+    outline-color: white;
+    padding:10px;
+    border: 2px solid white;
+    animation: animation-button-appears 10s ease 0s;
+  }
+  .loading button:active {
+    border-color: #AAA;
+    color:#AAA;
+    background: rgba(0,0,0,0.4);
+
+  }
+  @keyframes animation-dash {
+    0%{left:0px;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+    20%{left:50%;top:0%; font-size: 30px;color:rgba(255,255,255,1);}
+    50%{left:100%;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+    70%{left:50%;top:0%; font-size: 30px;color:rgba(255,255,255,1);}
+    100%{left:0%;top:0%; font-size: 20px;color:rgba(255,255,255,0.01);}
+  }
+  @keyframes animation-button-appears{
+    0%{color: rgba(255,255,255,0);background: rgba(0,0,0,0.0);border-color:rgba(255,255,255,0);pointer-events: none;}
+    95%{color: rgba(255,255,255,0);background: rgba(0,0,0,0.0);border-color:rgba(255,255,255,0);pointer-events: none;}
+    100%{color: rgba(255,255,255,1);background: rgba(0,0,0,0.2);border-color:rgba(255,255,255,1);pointer-events: auto;}
+  }
+</style>
+
+<script>
+socket = io.connect('https://socket.taq-system.tk',{query:{"type":"送信"}});
+
+var No=001;
+
+setInterval('showClock()',1000);
+
+function set(){ addqta(); addqta();}
+
+function createJson(){
+  var sum = document.getElementById("sum2").innerHTML;
+  var id = document.getElementById("No").innerHTML;
+  var items = document.getElementsByClassName("qt");
+  var sugar = document.getElementById("gazo1");
+  sugar = sugar.src;
+  if(sugar ==img[3].src)sugar = 1;
+  else sugar = 0;
+  var json = {
+    "id" : parseInt(id),
+    "time" : new Date(),
+    "priceSum" : parseInt(sum) ,
+    "item1" : parseInt(items[0].innerHTML),
+    "item2" : parseInt(items[1].innerHTML),
+    "item3" : parseInt(items[2].innerHTML),
+    "sugar" : sugar
+  }
+  return json;
+}
+var orderSend = false;
+var isOnline = false;
+function orderNo(){
+  var No=document.getElementById('No');
+  if(parseInt(sum1.innerHTML)>0){
+    var x=parseInt(sum1.innerHTML);
+    var ret=showAlert('注文確認','計'+x+'個'+x*50+'円です。'+'この注文を確定してよろしいですか？',"confirm",'orderNo2()');
+  }
+}
+function orderNo2(){
+  var No=document.getElementById('No');
+  if(parseInt(sum1.innerHTML)>0){
+    var x=parseInt(sum1.innerHTML);
+    var ret=true;
+    if(ret==true){
+      var json = createJson();
+      socket.json.emit("order",json);
+      orderSend = true;
+      orderFail = setTimeout(function (){
+        showAlert("注文エラー","注文の送信に失敗しました。再度注文を確定させてください。","noClose");
+        orderSend = false;
+      },2000);
+    }
+  }
+}
+socket.on('order',function(msg){
+  var RET = '<br>';
+  var message ;
+  message  = "　受付番号："+set3fig(msg.id) +RET;
+  message += "　受付日時："+msg.time+RET;
+  message += "　プレーン："+msg.item1+RET;
+  message += "　ココア　："+msg.item2+RET;
+  message += "　抹　茶　："+msg.item3+RET;
+  if(msg.sugar == 1)   message += "　粉　糖　： "+"あり"+RET;
+  else  message += "　粉　糖　： "+"なし"+RET;
+  message += "　合計金額： ￥"+msg.priceSum+RET;
+  var No=document.getElementById('No');
+  No.innerHTML=set3fig(parseInt(msg.id)+1);
+  if(orderSend){
+    resetNo();
+    clearTimeout(orderFail);
+    showAlert("注文完了","注文内容を正常に送信しました。"+RET + message);
+    orderSend = false;
+  }
+  else banner("注文受付","他の端末から注文が送信されました。詳細はタップしてください。","他の端末から注文が送信されました。"+RET + message);
+  console.log(msg);
+});
+
+socket.on('get_id',function(msg){ //番号取得
+  var No=document.getElementById('No');
+  No.innerHTML = set3fig(msg);
+banner("同期完了","注文番号の同期を行いました。");
+});
+var connection;
+socket.on('connect',function(){clearTimeout(connection);document.getElementById('loadicon').style.display='none';socket.emit('get_id',"");});
+socket.on('disconnect',function(){
+  connection=setTimeout(function(){document.getElementById('loadicon').style.display='block';},500);
+});
+socket.on("finish r", function(msg){
+  banner("完了通知",msg.id+" の注文が完了しました。");
+});
+
+
+function resetNo(){
+  var qt=document.getElementsByClassName('qt');
+  var sum1=document.getElementById('sum1');
+  var sum2=document.getElementById('sum2');
+  for(var i=0;i<3;i++){qt[i].innerHTML=0;}
+  cnt1=4;
+  onoff1();
+  sum1.innerHTML=0;
+  sum2.innerHTML=set3fig(parseInt(sum1.innerHTML)*50);
+}
+
+function onoff1(){
+  if (cnt1 == 4){ cnt1=3; }
+  else{ cnt1++; }
+  document.getElementById("gazo1").src=img[cnt1].src;
+}
+
+function sum(){
+  var qt=document.getElementsByClassName('qt');
+  var ex=0;
+  for(var i=0;i<6;i++){ex+=qt[i];};
+  return ex;
+}
+
+if(!HTMLElement.prototype.hold){
+  Object.defineProperty(HTMLElement.prototype, 'hold', {
+    configurable: true,
+    enumerable: false,
+    writable: true,
+    /**
+    * @function callback　長押し判定後に行われる何かの処理
+    * @int holdtime 長押し判定時間のしきい値(ミリ秒)
+    */
+    value: function(callback,holdtime) {
+      this.addEventListener('touchstart', function (event) {
+
+        event.preventDefault();
+        callback(); //event.preventDefaultでクリック等のイベントが解除されてしまうので、要素初タッチ時にも処理を行うようcallbackを設置しておく。
+        let time = 0;
+        let interval = setInterval(function(){
+          time += 100;
+          if(time > holdtime){
+            callback();
+          }
+        },100);
+        this.addEventListener('touchmove', function (event){
+          event.preventDefault();
+          clearInterval(interval);
+        });
+        this.addEventListener('touchend', function (event) {
+          event.preventDefault();
+          clearInterval(interval);
+        });
+      });
+      this.addEventListener('mousedown', function (event) {
+        event.preventDefault();
+        callback();
+        let time = 0;
+        let interval = setInterval(function(){
+          time += 100;
+          if(time > holdtime){
+            callback();
+          }
+        },100);
+        this.addEventListener('mouseup', function (event) {
+          event.preventDefault();
+          clearInterval(interval);
+        });
+      });
+    }
+  });
+}
+const longadd0 = document.querySelector('.longadd0');
+const longsub0  = document.querySelector('.longsub0');
+const number1 = document.querySelector('.number1');
+const longadd1 = document.querySelector('.longadd1');
+const longsub1  = document.querySelector('.longsub1');
+const number2 = document.querySelector('.number2');
+const longadd2 = document.querySelector('.longadd2');
+const longsub2  = document.querySelector('.longsub2');
+const number3 = document.querySelector('.number3');
+const longadd3 = document.querySelector('.longadd3');
+const longsub3  = document.querySelector('.longsub3');
+
+//const reset  = document.querySelector('.reset');
+
+//上矢印を長押ししている間、数値をカウントアップ
+longadd0.hold(()=>{if((out[0]==0)&&(out[1]==0)&&(out[2]==0)){for(var i=0;i<3;i++){add(i);}}},1000);
+//下矢印を長押ししている間、数値をカウントダウン
+longsub0.hold(()=>{if((out[0]==0)&&(out[1]==0)&&(out[2]==0)){for(var i=0;i<3;i++){sub(i);}}},1000);
+longadd1.hold(()=>{if(out[0]==0){add(0);}},1000);
+longsub1.hold(()=>{if(out[0]==0){sub(0);}},1000);
+longadd2.hold(()=>{if(out[1]==0){add(1);}},1000);
+longsub2.hold(()=>{if(out[1]==0){sub(1);}},1000);
+longadd3.hold(()=>{if(out[2]==0){add(2);}},1000);
+longsub3.hold(()=>{if(out[2]==0){sub(2);}},1000);
+/*
+var longtap=0;
+reset.hold(()=>{longtap++;resetNo();if(longtap>2){popup(); longtap=0;}},5000);
+setInterval('longtap=0;',5000);*/
+
+var out=new Array('0','0','0');
+
+function soldout00(){
+  if((out[0]==0)&&(out[1]==0)&&(out[2]==0)){
+    document.getElementById("add0").disabled = false;
+    document.getElementById("sub0").disabled = false;
+    document.getElementById("set").disabled = false;
+  } else {
+    document.getElementById("add0").disabled = true;
+    document.getElementById("sub0").disabled = true;
+    document.getElementById("set").disabled = true;
+  }
+}
+function soldout10(ischecked){
+  if(ischecked == true){
+    document.getElementById("add1").disabled = false;
+    document.getElementById("sub1").disabled = false;
+    document.getElementById("menu1").disabled = false;
+    out[0]=0;
+    soldout00();
+  } else {
+    document.getElementById("add1").disabled = true;
+    document.getElementById("sub1").disabled = true;
+    document.getElementById("menu1").disabled = true;
+    out[0]=1;
+    soldout00();
+  }
+}
+function soldout11(ischecked){
+  if(ischecked == true){
+    document.getElementById("add1").disabled = true;
+    document.getElementById("sub1").disabled = true;
+    document.getElementById("menu1").disabled = true;
+    out[0]=1;
+    soldout00();
+  } else {
+    document.getElementById("add1").disabled = false;
+    document.getElementById("sub1").disabled = false;
+    document.getElementById("menu1").disabled = false;
+    out[0]=0;
+    soldout00();
+  }
+}
+function soldout20(ischecked){
+  if(ischecked == true){
+    document.getElementById("add2").disabled = false;
+    document.getElementById("sub2").disabled = false;
+    document.getElementById("menu2").disabled = false;
+    out[1]=0;
+    soldout00();
+  } else {
+    document.getElementById("add2").disabled = true;
+    document.getElementById("sub2").disabled = true;
+    document.getElementById("menu2").disabled = true;
+    out[1]=1;
+    soldout00();
+  }
+}
+function soldout21(ischecked){
+  if(ischecked == true){
+    document.getElementById("add2").disabled = true;
+    document.getElementById("sub2").disabled = true;
+    document.getElementById("menu2").disabled = true;
+    out[1]=1;
+    soldout00();
+  } else {
+    document.getElementById("add2").disabled = false;
+    document.getElementById("sub2").disabled = false;
+    document.getElementById("menu2").disabled = false;
+    out[1]=0;
+    soldout00();
+  }
+}
+function soldout30(ischecked){
+  if(ischecked == true){
+    document.getElementById("add3").disabled = false;
+    document.getElementById("sub3").disabled = false;
+    document.getElementById("menu3").disabled = false;
+    out[2]=0;
+    soldout00();
+  } else {
+    document.getElementById("add3").disabled = true;
+    document.getElementById("sub3").disabled = true;
+    document.getElementById("menu3").disabled = true;
+    out[2]=1;
+    soldout00();
+  }
+}
+function soldout31(ischecked){
+  if(ischecked == true){
+    document.getElementById("add3").disabled = true;
+    document.getElementById("sub3").disabled = true;
+    document.getElementById("menu3").disabled = true;
+    out[2]=1;
+    soldout00();
+  } else {
+    document.getElementById("add3").disabled = false;
+    document.getElementById("sub3").disabled = false;
+    document.getElementById("menu3").disabled = false;
+    out[2]=0;
+    soldout00();
+  }
+}
+
+function popup(){
+  const p1=document.getElementById('hidden');
+  if(p1.style.visibility=="collapse"){
+    showAlert("確認","売切情報編集画面を開きますか？<br>※スタッフ以外は開かないでください","confirm","popup2()");
+  }else{
+    document.getElementById('hidden').style.visibility="collapse";
+    document.getElementById('soldbutton').innerHTML="編集";
+  }
+}
+function popup2(){
+  document.getElementById('hidden').style.visibility="visible";
+  document.getElementById('soldbutton').innerHTML="戻る";
+}
+function popdown(){
+  document.getElementById('hidden').style.visibility="collapse";
+}
+window.onload=popdown();
+</script>
+<style>
+  td{text-align:center;}
+
+  #soldout{position:fixed; left:1%; bottom:1%;}
+  #hidden{background-color:rgba(256,256,256,0.5);
+  position:fixed;bottom:20%;}
+
+  .popup,.popdown{background:#ffa500;}
+  .popup,.popdown{border-radius:5px;}
+
+  .order,.set,.all,.Product,.sum,.reset,.submit{position:fixed;}
+  .Product,.order,.sum,.all{background-color:rgba(256,256,256,0.5);}
+
+  .reload{right:1%; top:1%; width:25px;}
+/*
+  @media screen and (max-width:900px){
+    .set{width:15%; font-size:55%;}
+    .set{left:50%;}
+    .image{font-size:90%; width:75%;}
+    .pm{width:25px; height:25px; font-size:100%;}
+    .order,.sum{font-size:160%;}
+    .all{font-size:90%;}
+    .all{width:20%;}
+    .photo{width:90%;}
+
+  }*/
+</style>
+
+</body></html>
